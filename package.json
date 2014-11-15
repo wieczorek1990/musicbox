@@ -1,0 +1,12 @@
+{
+  "name": "musicbox",
+  "private": false,
+  "version": "0.0.1",
+  "description": "Simple jukebox",
+  "author": "<wieczorek1990@gmail.com>",
+  "dependencies": {
+    "express": "4.10.2",
+    "multer": "0.1.6",
+    "nedb": "0.11.1"
+  }
+}

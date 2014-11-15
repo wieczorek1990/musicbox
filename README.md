@@ -8,6 +8,9 @@ Planning to use:
 * docker
 * socket.io
 * socket.io-stream
-* bootstrap
 * nodejs
+* express
+* multer
+* nedb
 * jQuery
+* bootstrap

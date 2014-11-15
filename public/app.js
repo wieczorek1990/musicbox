@@ -29,4 +29,6 @@ $(document).ready(function () {
     ];
     $('#player').html(Handlebars.templates.player({track: current, tick: tick}));
     $('#tracks').html(Handlebars.templates.track({tracks: tracks}));
+    $('input[type=file]').bootstrapFileInput();
+    $('.file-inputs').bootstrapFileInput();
 });

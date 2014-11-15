@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Simple jukebox">
+    <meta name="author" content="wieczorek1990@gmail.com">
+    <link rel="icon" href="favicon.ico">
+
+    <title>Musicbox</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="bootstrap.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="jumbotron-narrow.css" rel="stylesheet">
+
+    <!-- Handlebars -->
+    <script src="handlebars.runtime-v2.0.0.js"></script>
+
+    <!-- jQuery -->
+    <script src="jquery-2.1.1.js"></script>
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="html5shiv.min.js"></script>
+    <script src="respond.min.js"></script>
+    <![endif]-->
+    <style id="holderjs-style" type="text/css"></style>
+</head>
+
+<body class=" __plain_text_READY__">
+
+<div class="container">
+    <div class="header">
+        <h3 class="text-muted">MusicBox</h3>
+    </div>
+
+    <div id="player"></div>
+
+    <div id="upload">
+        <form aciton="/upload" method="post" enctype="multipart/form-data" role="form" class="form-horizontal">
+            <div class="form-group">
+                <label for="title" class="col-sm-2 control-label">Title</label>
+
+                <div class="col-sm-10">
+                    <input type="text" class="form-control" name="title" placeholder="Title">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="track" class="col-sm-2 control-label">Track</label>
+
+                <div class="col-sm-10">
+                    <input type="file" accept=".mp3,.ogg" class="form-control" name="track" title="Choose track"
+                           data-filename-placement="inside">
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="col-sm-offset-2 col-sm-10">
+                    <button type="submit" class="btn btn-default">Upload</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div id="tracks"></div>
+
+    <footer class="footer">
+        <p>© wieczorek1990 2014</p>
+    </footer>
+
+</div>
+<!-- /container -->
+
+
+<!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+<script src="ie10-viewport-bug-workaround.js"></script>
+
+<script src="player.compiled.js"></script>
+
+<script src="track.compiled.js"></script>
+
+<script src="bootstrap.file-input.js"></script>
+
+<script src="app.js"></script>
+
+</body>
+</html>
