@@ -7,6 +7,12 @@
   "dependencies": {
     "express": "4.10.2",
     "multer": "0.1.6",
-    "nedb": "0.11.1"
+    "musicmetadata": "^0.6.0",
+    "nedb": "0.11.1",
+    "socket.io": "1.2.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/wieczorek1990/musicbox.git"
   }
 }
