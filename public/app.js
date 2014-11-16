@@ -1,6 +1,7 @@
 var lastTrackId;
 var player;
 var spinner;
+var mute = false;
 
 // Handlebars
 
@@ -35,13 +36,15 @@ Handlebars.registerHelper('description', function (track) {
 // Core
 
 function initAudio() {
-    player = new Audio5js({
+    new Audio5js({
         swf_path: './player.swf',
         throw_errors: true,
         format_time: true,
         ready: function () {
+            player = this;
             this.load('/stream');
             this.play();
+            setMute(mute);
         }
     });
 }
@@ -54,7 +57,7 @@ function changeCurrent() {
             if (lastTrackId != track._id) {
                 $player.html(Handlebars.templates.player({track: track}));
                 initAudio();
-                $('#mute').click(changeState);
+                $('#mute').click(changeMute);
                 lastTrackId = track._id;
             }
         }
@@ -71,15 +74,16 @@ function changeTracks() {
     });
 }
 
-function changeState(e) {
-    var $self = $(e.target);
-    if (player.volume()) {
-        player.volume(0);
-        $self.text('Unmute');
-    } else {
-        player.volume(1);
-        $self.text('Mute');
-    }
+function setMute(value) {
+    mute = value;
+    var volume = mute ? 0 : 1;
+    var text = mute ? 'Unmute' : 'Mute';
+    player.volume(volume);
+    $('#mute').text(text);
+}
+
+function changeMute() {
+    setMute(!mute);
 }
 
 // Front
