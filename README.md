@@ -39,6 +39,7 @@ Locally:
 ```shell
 git clone git@github.com:wieczorek1990/musicbox.git
 cd musicbox
+npm install
 sudo node index.js [clean]
 ```
 

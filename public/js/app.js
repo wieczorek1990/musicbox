@@ -55,8 +55,8 @@ function setMute(value) {
 
 function initAudio() {
     log('initAudio');
-    Audio5js({
-        swf_path: './player.swf',
+    new Audio5js({
+        swf_path: './vendor/swf/audio5js.swf',
         throw_errors: true,
         format_time: true,
         ready: function () {
