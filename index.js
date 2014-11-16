@@ -153,6 +153,10 @@ function stream(res) {
     file.pipe(reader);
 }
 
+function left() {
+    io.emit('left', current.track.duration - tick);
+}
+
 function start() {
     log('start');
     var clock;
@@ -160,6 +164,7 @@ function start() {
     function init() {
         log('init');
         tick = 0;
+        left();
         info();
         clock = setInterval(nextTick, ms(1));
         setTimeout(nextTrack, ms(current.track.duration));
@@ -167,6 +172,7 @@ function start() {
 
     function nextTick() {
         tick += 1;
+        left();
         info();
     }
 
@@ -236,7 +242,7 @@ server.listen(80, function () {
         log(message);
     }
     if (process.argv[2] === 'clean') {
-        dbh.remove(db.tracks);
+        dbh.remove([db.current, db.tracks]);
     }
     start();
 });

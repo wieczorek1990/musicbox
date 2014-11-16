@@ -40,6 +40,10 @@ Handlebars.registerHelper('description', function (track) {
     return artistsString + track.title + ' (' + Handlebars.helpers.time(track.duration) + ')';
 });
 
+Handlebars.registerHelper('left', function(left) {
+    return 'Time left: ' + Handlebars.helpers.time(left);
+});
+
 // Core
 
 function initAudio() {
@@ -99,11 +103,14 @@ function setupSocket() {
     var socket = io.connect('/');
     socket.on('current', changeCurrent);
     socket.on('tracks', changeTracks);
-    socket.on('spinner', function() {
+    socket.on('spinner', function () {
         if (spinner) {
             spinner.stop();
         }
-    })
+    });
+    socket.on('left', function (left) {
+        $('#left').text(Handlebars.helpers.left(left));
+    });
 }
 
 // Front
@@ -117,9 +124,9 @@ function makeFileInput() {
 function setupFront() {
     $('#form').ajaxForm({
         resetForm: true,
-        beforeSubmit: function(arr, $form, options) {
-            for (var index in arr) {
-                var hash = arr[index];
+        beforeSubmit: function (array, $form, options) {
+            for (var index in array) {
+                var hash = array[index];
                 if (hash.name === 'track') {
                     if (hash.value === '') {
                         if (spinner) {
@@ -129,6 +136,12 @@ function setupFront() {
                     }
                 }
             }
+        },
+        success: function (event) {
+            if (event.handled !== true) {
+                event.handled = true;
+            }
+            return false;
         },
         uploadProgress: function (event, position, total, percent) {
             if (percent === 100) {
