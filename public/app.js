@@ -1,4 +1,3 @@
-var lastTrackId;
 var player;
 var spinner;
 var mute = false;
@@ -50,27 +49,19 @@ function initAudio() {
 }
 
 function changeCurrent() {
-    console.log('changeCurrent');
     $.get('/current', function (track) {
         var $player = $('#player');
         if (track) {
-            if (lastTrackId != track._id) {
-                $player.html(Handlebars.templates.player({track: track}));
-                initAudio();
-                $('#mute').click(changeMute);
-                lastTrackId = track._id;
-            }
+            $player.html(Handlebars.templates.player({track: track}));
+            $('#mute').click(changeMute);
+            initAudio();
         }
     });
 }
 
 function changeTracks() {
-    console.log('changeTracks');
     $.get('/tracks', function (tracks) {
         $('#tracks').html(Handlebars.templates.track({tracks: tracks}));
-        if (!lastTrackId) {
-            changeCurrent();
-        }
     });
 }
 
@@ -86,6 +77,12 @@ function changeMute() {
     setMute(!mute);
 }
 
+function setupSocket() {
+    var socket = io.connect('/');
+    socket.on('current', changeCurrent);
+    socket.on('tracks', changeTracks);
+}
+
 // Front
 
 function makeFileInput() {
@@ -94,7 +91,7 @@ function makeFileInput() {
     $('.file-inputs').bootstrapFileInput();
 }
 
-function setupForm() {
+function setupFront() {
     var $form = $('#form');
     $form.ajaxForm({
         uploadProgress: function (event, position, total, percent) {
@@ -111,15 +108,13 @@ function setupForm() {
         } else {
             spinner.spin();
         }
-    })
-}
-
-$(document).ready(function () {
-    setupForm();
+    });
     makeFileInput();
     changeCurrent();
     changeTracks();
-    var socket = io.connect('/');
-    socket.on('current', changeCurrent);
-    socket.on('tracks', changeTracks);
+}
+
+$(document).ready(function () {
+    setupFront();
+    setupSocket();
 });

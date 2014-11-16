@@ -103,6 +103,7 @@ function stream(res) {
         'Content-Type': 'audio/' + type,
         'Transfer-Encoding': 'chunked'
     });
+    // TODO same stream for everyone
     // TODO seek
     var reader = fs.createReadStream(path);
     reader.pipe(res);
@@ -157,9 +158,6 @@ app.get('/tracks', function (req, res) {
     }
 });
 
-// TODO same stream for everyone
-// TODO event on end of track
-// TODO remove after end of track
 app.get('/stream', function (req, res) {
     stream(res);
 });
