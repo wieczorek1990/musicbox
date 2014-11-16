@@ -31,7 +31,6 @@ git clone git@github.com:wieczorek1990/musicbox.git
 cd musicbox
 sudo docker build -t wieczorek1990/musicbox .
 sudo docker run -p 80:80 wieczorek1990/musicbox
-google-chrome http://localhost
 ```
 
 Locally:
@@ -44,6 +43,8 @@ sudo node index.js [clean]
 ```
 
 If you pass clean as first argument databases will be removed.
+
+After running the above open http://localhost in web browser.
 
 ## Scripts:
 `clean.fish` - clean db and tracks directories,
