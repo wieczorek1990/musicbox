@@ -2,6 +2,7 @@ var express = require('express');
 var app = express();
 var server = require('http').Server(app);
 var io = require('socket.io')(server);
+var exec = require('child_process').exec;
 var fs = require('fs');
 var multer = require('multer');
 var mm = require('musicmetadata');
@@ -12,10 +13,22 @@ var db = {
     tracks: new nedb({filename: 'db/tracks.db', autoload: true}),
     current: new nedb({filename: 'db/current.db', autoload: true})
 };
+var debug = true;
 var current;
+var soxDelay = 5;
 var tick;
 
 // Helpers
+
+function log() {
+    if (debug) {
+        console.log.apply(console, arguments);
+    }
+}
+
+function info() {
+    log('tick: ' + tick + ', title: ' + current.track.title);
+}
 
 function ms(seconds) {
     return seconds * 1000;
@@ -25,10 +38,6 @@ function empty(hash) {
     return Object.keys(hash).length === 0
 }
 
-function info() {
-    console.log('tick: ' + tick + ', track: ' + current.track.title);
-}
-
 function findLater(callback) {
     db.tracks.find({timestamp: {$gt: current.track.timestamp}}).sort({timestamp: 1}).exec(callback);
 }
@@ -36,7 +45,6 @@ function findLater(callback) {
 // Core
 
 function addTrack(req, callback) {
-    console.log('addTrack');
     var path = req.files.track.path;
     var parser = mm(fs.createReadStream(path), {duration: true});
     parser.on('metadata', function (meta) {
@@ -95,18 +103,30 @@ function nextCurrent(callback) {
     });
 }
 
-function stream(res) {
-    var path = current.track.path;
-    var extension = path.split('.').pop();
-    var type = extension == 'mp3' ? 'mpeg' : 'ogg';
-    res.set({
-        'Content-Type': 'audio/' + type,
-        'Transfer-Encoding': 'chunked'
-    });
-    // TODO same stream for everyone
-    // TODO seek
+function startStream(res, path) {
     var reader = fs.createReadStream(path);
     reader.pipe(res);
+}
+
+function stream(res) {
+    var inputPath = current.track.path;
+    var filename = inputPath.replace(/^tracks\//, '');
+    var outputPath = 'tracks/trimmed/' + filename;
+    var extension = inputPath.split('.').pop();
+    var type = 'audio/' + (extension === 'mp3' ? 'mpeg' : 'ogg');
+    res.set({
+        'Content-Type': type,
+        'Transfer-Encoding': 'chunked'
+    });
+    if (tick !== 0) {
+        var start = tick + soxDelay;
+        var command = 'sox ' + inputPath + ' ' + outputPath + ' trim ' + start;
+        exec(command, function () {
+            startStream(res, outputPath);
+        });
+    } else {
+        startStream(res, inputPath);
+    }
 }
 
 function start() {
@@ -177,7 +197,9 @@ app.post('/', function (req, res) {
 });
 
 server.listen(8080, function () {
-    console.log('Listening at http://localhost:%s', server.address().port);
-    //dbh.remove(db.tracks);
+    log('Listening at http://localhost:%s', server.address().port);
+    if (process.argv[2] === 'clean') {
+        dbh.remove(db.tracks);
+    }
     start();
 });

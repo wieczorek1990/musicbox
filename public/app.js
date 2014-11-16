@@ -23,7 +23,7 @@ Handlebars.registerHelper('description', function (track) {
     if (artists.length) {
         for (var index in artists) {
             artistsString += artists[index];
-            if (index != artists.length - 1) {
+            if (index !== artists.length - 1) {
                 artistsString += ', ';
             }
         }
@@ -95,7 +95,7 @@ function setupFront() {
     var $form = $('#form');
     $form.ajaxForm({
         uploadProgress: function (event, position, total, percent) {
-            if (percent == 100) {
+            if (percent === 100) {
                 $form[0].reset();
                 makeFileInput();
                 spinner.stop();
