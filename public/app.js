@@ -1,8 +1,16 @@
+var debug = true;
+var mute = false;
 var player;
 var spinner;
-var mute = false;
+var tracksEmpty = true;
 
-// Handlebars
+// Helpers
+
+function log() {
+    if (debug) {
+        console.log.apply(console, arguments);
+    }
+}
 
 Handlebars.registerHelper('plusOne', function (value) {
     return value + 1;
@@ -23,7 +31,7 @@ Handlebars.registerHelper('description', function (track) {
     if (artists.length) {
         for (var index in artists) {
             artistsString += artists[index];
-            if (index !== artists.length - 1) {
+            if (index < artists.length - 1) {
                 artistsString += ', ';
             }
         }
@@ -35,6 +43,7 @@ Handlebars.registerHelper('description', function (track) {
 // Core
 
 function initAudio() {
+    log('initAudio');
     new Audio5js({
         swf_path: './player.swf',
         throw_errors: true,
@@ -49,9 +58,16 @@ function initAudio() {
 }
 
 function changeCurrent() {
+    log('changeCurrent');
     $.get('/current', function (track) {
         var $player = $('#player');
         if (track) {
+            if (tracksEmpty) {
+                if (spinner) {
+                    spinner.stop();
+                }
+                tracksEmpty = false;
+            }
             $player.html(Handlebars.templates.player({track: track}));
             $('#mute').click(changeMute);
             initAudio();
@@ -60,8 +76,10 @@ function changeCurrent() {
 }
 
 function changeTracks() {
+    log('changeTracks');
     $.get('/tracks', function (tracks) {
-        $('#tracks').html(Handlebars.templates.track({tracks: tracks}));
+        tracksEmpty = tracks.length === 0;
+        $('#tracks').html(Handlebars.templates.track({tracks: tracks, tracksEmpty: tracksEmpty}));
     });
 }
 
@@ -81,6 +99,11 @@ function setupSocket() {
     var socket = io.connect('/');
     socket.on('current', changeCurrent);
     socket.on('tracks', changeTracks);
+    socket.on('spinner', function() {
+        if (spinner) {
+            spinner.stop();
+        }
+    })
 }
 
 // Front
@@ -92,13 +115,27 @@ function makeFileInput() {
 }
 
 function setupFront() {
-    var $form = $('#form');
-    $form.ajaxForm({
+    $('#form').ajaxForm({
+        resetForm: true,
+        beforeSubmit: function(arr, $form, options) {
+            for (var index in arr) {
+                var hash = arr[index];
+                if (hash.name === 'track') {
+                    if (hash.value === '') {
+                        if (spinner) {
+                            spinner.stop();
+                        }
+                        return false;
+                    }
+                }
+            }
+        },
         uploadProgress: function (event, position, total, percent) {
             if (percent === 100) {
-                $form[0].reset();
                 makeFileInput();
-                spinner.stop();
+                if (!tracksEmpty && spinner) {
+                    spinner.stop();
+                }
             }
         }
     });

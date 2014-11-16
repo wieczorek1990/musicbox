@@ -1,8 +1,13 @@
 <div class="row">
-    <h2 class="text-center">Queue</h2>
-    <div class="col-lg-6 col-lg-offset-3">
-        {{#each tracks}}
-            <h4>{{plusOne @index}}. {{description this}}</h4>
-        {{/each}}
-    </div>
+    {{#if tracksEmpty}}
+        <h2 class="text-center">Queue is empty. Upload something!</h2>
+    {{else}}
+        <h2 class="text-center">Queue</h2>
+
+        <div class="col-lg-6 col-lg-offset-3">
+            {{#each tracks}}
+                <h4>{{plusOne @index}}. {{description this}}</h4>
+            {{/each}}
+        </div>
+    {{/if}}
 </div>

@@ -4,9 +4,11 @@ var server = require('http').Server(app);
 var io = require('socket.io')(server);
 var exec = require('child_process').exec;
 var fs = require('fs');
+var lame = require('lame');
 var multer = require('multer');
 var mm = require('musicmetadata');
 var nedb = require('nedb');
+var wav = require('wav');
 var dbh = require('./dbh.js');
 
 var db = {
@@ -15,7 +17,7 @@ var db = {
 };
 var debug = true;
 var current;
-var soxDelay = 5;
+var ips = [];
 var tick;
 
 // Helpers
@@ -30,6 +32,10 @@ function info() {
     log('tick: ' + tick + ', title: ' + current.track.title);
 }
 
+function time() {
+    return (new Date()).getTime();
+}
+
 function ms(seconds) {
     return seconds * 1000;
 }
@@ -42,9 +48,27 @@ function findLater(callback) {
     db.tracks.find({timestamp: {$gt: current.track.timestamp}}).sort({timestamp: 1}).exec(callback);
 }
 
+function wavPath(path) {
+    return path.replace(/\.[^.]+$/, '.wav');
+}
+
+function calculateStart(path, format) {
+    var size = fs.statSync(path, 'r').size;
+    var byteRate = format.byteRate;
+    var headerLength = size % byteRate;
+    return headerLength + tick * byteRate;
+}
+
 // Core
 
+function decode(inputPath, callback) {
+    var outputPath = wavPath(inputPath);
+    var command = ['sox', inputPath, '-t sndfile', outputPath].join(' ');
+    exec(command, callback);
+}
+
 function addTrack(req, callback) {
+    log('addTrack');
     var path = req.files.track.path;
     var parser = mm(fs.createReadStream(path), {duration: true});
     parser.on('metadata', function (meta) {
@@ -56,29 +80,33 @@ function addTrack(req, callback) {
         } else {
             title = path.replace(/.*\//, '');
         }
-        db.tracks.insert({
-            path: path,
-            timestamp: (new Date()).getTime(),
-            artist: meta.artist,
-            duration: meta.duration,
-            title: title
-        }, function () {
-            if (callback) {
-                callback(function () {
+        decode(path, function () {
+            db.tracks.insert({
+                path: wavPath(path),
+                timestamp: time(),
+                artist: meta.artist,
+                duration: meta.duration,
+                title: title
+            }, function () {
+                if (callback) {
+                    callback(function () {
+                        io.emit('tracks');
+                    });
+                } else {
                     io.emit('tracks');
-                });
-            } else {
-                io.emit('tracks');
-            }
+                }
+            });
         });
     });
 }
 
 function setCurrent(docs, callback) {
+    log('setCurrent');
     var doc = docs[0];
     db.current.insert({track: doc}, function (err, doc) {
         current = doc;
         io.emit('current');
+        io.emit('tracks');
         if (callback) {
             callback();
         }
@@ -86,6 +114,7 @@ function setCurrent(docs, callback) {
 }
 
 function initCurrent(callback) {
+    log('initCurrent');
     db.tracks.find().sort({timestamp: 1}).limit(1).exec(function (err, docs) {
         if (docs.length) {
             setCurrent(docs, callback);
@@ -94,6 +123,7 @@ function initCurrent(callback) {
 }
 
 function nextCurrent(callback) {
+    log('nextCurrent');
     findLater(function (err, docs) {
         if (!docs.length) {
             initCurrent(callback);
@@ -103,36 +133,32 @@ function nextCurrent(callback) {
     });
 }
 
-function startStream(res, path) {
-    var reader = fs.createReadStream(path);
-    reader.pipe(res);
-}
-
 function stream(res) {
-    var inputPath = current.track.path;
-    var filename = inputPath.replace(/^tracks\//, '');
-    var outputPath = 'tracks/trimmed/' + filename;
-    var extension = inputPath.split('.').pop();
-    var type = 'audio/' + (extension === 'mp3' ? 'mpeg' : 'ogg');
+    log('stream');
+    var path = current.track.path;
+    var file = fs.createReadStream(path);
+    var reader = new wav.Reader();
     res.set({
-        'Content-Type': type,
+        'Content-Type': 'audio/mpeg',
         'Transfer-Encoding': 'chunked'
     });
-    if (tick !== 0) {
-        var start = tick + soxDelay;
-        var command = 'sox ' + inputPath + ' ' + outputPath + ' trim ' + start;
-        exec(command, function () {
-            startStream(res, outputPath);
-        });
-    } else {
-        startStream(res, inputPath);
-    }
+    reader.on('format', function (format) {
+        file.unpipe();
+        reader.end();
+        var start = calculateStart(path, format);
+        var f = fs.createReadStream(path, {start: start});
+        var encoder = new lame.Encoder(format);
+        f.pipe(encoder).pipe(res);
+    });
+    file.pipe(reader);
 }
 
 function start() {
+    log('start');
     var clock;
 
     function init() {
+        log('init');
         tick = 0;
         info();
         clock = setInterval(nextTick, ms(1));
@@ -145,6 +171,8 @@ function start() {
     }
 
     function nextTrack() {
+        log('nextTrack');
+        ips = [];
         if (clock) {
             clearInterval(clock);
         }
@@ -179,25 +207,34 @@ app.get('/tracks', function (req, res) {
 });
 
 app.get('/stream', function (req, res) {
-    stream(res);
+    var ip = req.ip;
+    if (ips.indexOf(ip) === -1) {
+        ips.push(ip);
+        stream(res);
+    }
 });
 
-// Didn't work with other route
+// Doesnt't work with other route
 app.post('/', function (req, res) {
+    log('upload');
     if (!empty(req.files)) {
         if (!current) {
             addTrack(req, start);
         } else {
             addTrack(req);
         }
-
-    } else {
-        res.redirect('back');
     }
 });
 
-server.listen(8080, function () {
-    log('Listening at http://localhost:%s', server.address().port);
+server.listen(80, function () {
+    var message = 'Listening at http://localhost';
+    var port = server.address().port;
+    if (port !== 80) {
+        message += ':%s';
+        log(message, port);
+    } else {
+        log(message);
+    }
     if (process.argv[2] === 'clean') {
         dbh.remove(db.tracks);
     }
