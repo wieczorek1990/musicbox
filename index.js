@@ -7,17 +7,16 @@ var fs = require('fs');
 var lame = require('lame');
 var multer = require('multer');
 var mm = require('musicmetadata');
-var nedb = require('nedb');
+var Datastore = require('nedb');
 var wav = require('wav');
 var dbh = require('./dbh.js');
 
 var db = {
-    tracks: new nedb({filename: 'db/tracks.db', autoload: true}),
-    current: new nedb({filename: 'db/current.db', autoload: true})
+    tracks: new Datastore({filename: 'db/tracks.db', autoload: true}),
+    current: new Datastore({filename: 'db/current.db', autoload: true})
 };
 var debug = true;
 var current;
-//var ips = [];
 var tick;
 
 // Helpers
@@ -41,7 +40,7 @@ function ms(seconds) {
 }
 
 function empty(hash) {
-    return Object.keys(hash).length === 0
+    return Object.keys(hash).length === 0;
 }
 
 function findLater(callback) {
@@ -161,15 +160,6 @@ function start() {
     log('start');
     var clock;
 
-    function init() {
-        log('init');
-        tick = 0;
-        left();
-        info();
-        clock = setInterval(nextTick, ms(1));
-        setTimeout(nextTrack, ms(current.track.duration));
-    }
-
     function nextTick() {
         tick += 1;
         left();
@@ -178,7 +168,15 @@ function start() {
 
     function nextTrack() {
         log('nextTrack');
-        //ips = [];
+        function init() {
+            log('init');
+            tick = 0;
+            left();
+            info();
+            clock = setInterval(nextTick, ms(1));
+            setTimeout(nextTrack, ms(current.track.duration));
+        }
+
         if (clock) {
             clearInterval(clock);
         }

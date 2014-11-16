@@ -45,9 +45,17 @@ Handlebars.registerHelper('left', function (left) {
 
 // Core
 
+function setMute(value) {
+    mute = value;
+    var volume = mute ? 0 : 1;
+    var text = mute ? 'Unmute' : 'Mute';
+    player.volume(volume);
+    $('#mute').text(text);
+}
+
 function initAudio() {
     log('initAudio');
-    new Audio5js({
+    Audio5js({
         swf_path: './player.swf',
         throw_errors: true,
         format_time: true,
@@ -58,6 +66,10 @@ function initAudio() {
             setMute(mute);
         }
     });
+}
+
+function changeMute() {
+    setMute(!mute);
 }
 
 function changeCurrent() {
@@ -83,19 +95,7 @@ function changeTracks() {
     });
 }
 
-function setMute(value) {
-    mute = value;
-    var volume = mute ? 0 : 1;
-    var text = mute ? 'Unmute' : 'Mute';
-    player.volume(volume);
-    $('#mute').text(text);
-}
-
-function changeMute() {
-    setMute(!mute);
-}
-
-function left(left) {
+function changeLeft(left) {
     $('#left').text(Handlebars.helpers.left(left));
 }
 
@@ -103,7 +103,7 @@ function setupSocket() {
     var socket = io.connect('/');
     socket.on('current', changeCurrent);
     socket.on('tracks', changeTracks);
-    socket.on('left', left);
+    socket.on('left', changeLeft);
 }
 
 // Front
