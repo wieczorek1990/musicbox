@@ -9,7 +9,7 @@ var db = {
 
 //dbh.remove([db.counters, db.tracks]);
 //db.counters.insert({_id: "track_id", seq: 0});
-dbh.print([db.counters, db.tracks]);
+dbh.print([db.counters, db.current, db.tracks]);
 //dbh.getNextSequence(db.counters, 'track_id', function (id) {
 //    db.tracks.insert({
 //        id: id,
@@ -36,4 +36,3 @@ dbh.print([db.counters, db.tracks]);
 //        }
 //    });
 //});
-

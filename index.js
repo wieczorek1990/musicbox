@@ -13,54 +13,27 @@ var db = {
     current: new nedb({filename: 'db/current.db', autoload: true})
 };
 var current;
+var tick;
 
-app.use(express.static('./public'));
-app.use(multer({dest: './tracks/'}));
+// Helpers
 
-app.get('/current', function (req, res) {
-    if (current) {
-        res.json(current.track);
-    }
-});
+function ms(seconds) {
+    return seconds * 1000;
+}
 
-app.get('/tracks', function (req, res) {
-    if (current) {
-        db.tracks.find({timestamp: {$gt: current.track.timestamp}}).sort({timestamp: 1}).exec(function (err, docs) {
-            res.json(docs);
-        });
-    }
-});
+function empty(hash) {
+    return Object.keys(hash).length === 0
+}
 
-// TODO same stream for everyone
-// TODO event on end of track
-// TODO remove after end of track
-app.get('/stream', function (req, res) {
-    var path = current.track.path;
-    var extension = path.split('.').pop();
-    var type = extension == 'mp3' ? 'mpeg' : 'ogg';
-    res.set({
-        'Content-Type': 'audio/' + type,
-        'Transfer-Encoding': 'chunked'
-    });
-    // TODO seek
-    var stream = fs.createReadStream(path);
-    stream.pipe(res);
-});
+function info() {
+    console.log('tick: ' + tick + ', track: ' + current.track.title);
+}
 
-// Didn't work with other route
-app.post('/', function (req, res) {
-    if (Object.keys(req.files).length != 0) {
-        io.emit('done');
-        if (!current) {
-            addTrack(req, initCurrent);
-        } else {
-            addTrack(req);
-        }
+function findLater(callback) {
+    db.tracks.find({timestamp: {$gt: current.track.timestamp}}).sort({timestamp: 1}).exec(callback);
+}
 
-    } else {
-        res.redirect('back');
-    }
-});
+// Core
 
 function addTrack(req, callback) {
     console.log('addTrack');
@@ -93,39 +66,120 @@ function addTrack(req, callback) {
     });
 }
 
-function initCurrent(callback) {
-    console.log('initCurrent');
-    db.tracks.find().sort({timestamp: 1}).limit(1).exec(function (err, docs) {
-        var doc = docs[0];
-        if (doc) {
-            db.current.insert({track: doc}, function (err, doc) {
-                current = doc;
-                io.emit('current');
-                callback();
-            });
+function setCurrent(docs, callback) {
+    var doc = docs[0];
+    db.current.insert({track: doc}, function (err, doc) {
+        current = doc;
+        io.emit('current');
+        if (callback) {
+            callback();
         }
     });
 }
 
-function nextCurrent() {
-    console.log('nextCurrent');
-    db.tracks.find({timestamp: {$gt: current.timestamp}}).sort({timestamp: 1}).exec(function (err, docs) {
-        console.log('docs: ' + JSON.stringify(docs));
-        if (!docs.length) {
-            initCurrent();
+function initCurrent(callback) {
+    db.tracks.find().sort({timestamp: 1}).limit(1).exec(function (err, docs) {
+        if (docs.length) {
+            setCurrent(docs, callback);
         }
-        var doc = docs[0];
-        db.current.insert({track: doc}, function (err, doc) {
-            console.log('inserted: ' + JSON.stringify(doc));
-            current = doc;
-            io.emit('current');
-        });
     });
 }
+
+function nextCurrent(callback) {
+    findLater(function (err, docs) {
+        if (!docs.length) {
+            initCurrent(callback);
+        } else {
+            setCurrent(docs, callback);
+        }
+    });
+}
+
+function stream(res) {
+    var path = current.track.path;
+    var extension = path.split('.').pop();
+    var type = extension == 'mp3' ? 'mpeg' : 'ogg';
+    res.set({
+        'Content-Type': 'audio/' + type,
+        'Transfer-Encoding': 'chunked'
+    });
+    // TODO seek
+    var reader = fs.createReadStream(path);
+    reader.pipe(res);
+}
+
+function start() {
+    var clock;
+
+    function init() {
+        tick = 0;
+        info();
+        clock = setInterval(nextTick, ms(1));
+        setTimeout(nextTrack, ms(current.track.duration));
+    }
+
+    function nextTick() {
+        tick += 1;
+        info();
+    }
+
+    function nextTrack() {
+        if (clock) {
+            clearInterval(clock);
+        }
+        if (current) {
+            nextCurrent(init);
+        } else {
+            initCurrent(init);
+        }
+    }
+
+    nextTrack();
+}
+
+// Express
+
+app.use(express.static('./public'));
+
+app.use(multer({dest: './tracks/'}));
+
+app.get('/current', function (req, res) {
+    if (current) {
+        res.json(current.track);
+    }
+});
+
+app.get('/tracks', function (req, res) {
+    if (current) {
+        findLater(function (err, docs) {
+            res.json(docs);
+        });
+    }
+});
+
+// TODO same stream for everyone
+// TODO event on end of track
+// TODO remove after end of track
+app.get('/stream', function (req, res) {
+    stream(res);
+});
+
+// Didn't work with other route
+app.post('/', function (req, res) {
+    if (!empty(req.files)) {
+        if (!current) {
+            addTrack(req, start);
+        } else {
+            addTrack(req);
+        }
+
+    } else {
+        res.redirect('back');
+    }
+});
 
 server.listen(8080, function () {
-    var port = server.address().port;
-    console.log('Listening at http://localhost:%s', port);
-    dbh.remove(db.tracks);
-    initCurrent();
+    console.log('Listening at http://localhost:%s', server.address().port);
+    //dbh.remove(db.tracks);
+    start();
 });

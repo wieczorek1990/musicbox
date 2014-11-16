@@ -3,7 +3,7 @@ musicbox
 
 Simple jukebox
 
-Planning to use:
+Using:
 
 * docker
 * socket.io
@@ -14,3 +14,6 @@ Planning to use:
 * musicmetadata
 * jQuery
 * bootstrap
+* bootstrap-file-input
+* audio5js
+* spinjs
