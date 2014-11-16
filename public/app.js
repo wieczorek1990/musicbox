@@ -1,7 +1,6 @@
 var debug = true;
 var mute = false;
 var player;
-var spinner;
 var tracksEmpty = true;
 
 // Helpers
@@ -40,7 +39,7 @@ Handlebars.registerHelper('description', function (track) {
     return artistsString + track.title + ' (' + Handlebars.helpers.time(track.duration) + ')';
 });
 
-Handlebars.registerHelper('left', function(left) {
+Handlebars.registerHelper('left', function (left) {
     return 'Time left: ' + Handlebars.helpers.time(left);
 });
 
@@ -67,9 +66,6 @@ function changeCurrent() {
         var $player = $('#player');
         if (track) {
             if (tracksEmpty) {
-                if (spinner) {
-                    spinner.stop();
-                }
                 tracksEmpty = false;
             }
             $player.html(Handlebars.templates.player({track: track}));
@@ -99,18 +95,15 @@ function changeMute() {
     setMute(!mute);
 }
 
+function left(left) {
+    $('#left').text(Handlebars.helpers.left(left));
+}
+
 function setupSocket() {
     var socket = io.connect('/');
     socket.on('current', changeCurrent);
     socket.on('tracks', changeTracks);
-    socket.on('spinner', function () {
-        if (spinner) {
-            spinner.stop();
-        }
-    });
-    socket.on('left', function (left) {
-        $('#left').text(Handlebars.helpers.left(left));
-    });
+    socket.on('left', left);
 }
 
 // Front
@@ -121,44 +114,14 @@ function makeFileInput() {
     $('.file-inputs').bootstrapFileInput();
 }
 
-function setupFront() {
-    $('#form').ajaxForm({
-        resetForm: true,
-        beforeSubmit: function (array, $form, options) {
-            for (var index in array) {
-                var hash = array[index];
-                if (hash.name === 'track') {
-                    if (hash.value === '') {
-                        if (spinner) {
-                            spinner.stop();
-                        }
-                        return false;
-                    }
-                }
-            }
-        },
-        success: function (event) {
-            if (event.handled !== true) {
-                event.handled = true;
-            }
-            return false;
-        },
-        uploadProgress: function (event, position, total, percent) {
-            if (percent === 100) {
-                makeFileInput();
-                if (!tracksEmpty && spinner) {
-                    spinner.stop();
-                }
-            }
-        }
-    });
+function bindSubmit() {
     $('#submit').click(function () {
-        if (!spinner) {
-            spinner = new Spinner().spin(document.body);
-        } else {
-            spinner.spin();
-        }
+        new Spinner().spin(document.body);
     });
+}
+
+function setupFront() {
+    bindSubmit();
     makeFileInput();
     changeCurrent();
     changeTracks();

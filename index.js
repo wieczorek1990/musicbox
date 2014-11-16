@@ -17,7 +17,7 @@ var db = {
 };
 var debug = true;
 var current;
-var ips = [];
+//var ips = [];
 var tick;
 
 // Helpers
@@ -178,7 +178,7 @@ function start() {
 
     function nextTrack() {
         log('nextTrack');
-        ips = [];
+        //ips = [];
         if (clock) {
             clearInterval(clock);
         }
@@ -213,22 +213,26 @@ app.get('/tracks', function (req, res) {
 });
 
 app.get('/stream', function (req, res) {
-    var ip = req.ip;
-    if (ips.indexOf(ip) === -1) {
-        ips.push(ip);
-        stream(res);
-    }
+    stream(res);
 });
 
-// Doesnt't work with other route
+// TODO Doesnt't work with other routes: "Cannot POST /"
 app.post('/', function (req, res) {
-    log('upload');
+    function redirect() {
+        res.redirect('back');
+    }
+
     if (!empty(req.files)) {
         if (!current) {
-            addTrack(req, start);
+            addTrack(req, function () {
+                start();
+                redirect();
+            });
         } else {
-            addTrack(req);
+            addTrack(req, redirect);
         }
+    } else {
+        redirect();
     }
 });
 

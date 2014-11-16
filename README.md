@@ -48,7 +48,3 @@ If you pass clean as first argument databases will be removed.
 `clean.fish` - clean db and tracks directories,
 
  `compile.fish` - compile handlebars templates.
-
-## Bugs
-
-Upload fires itself again after ~2 minutes...
