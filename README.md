@@ -5,22 +5,22 @@ Simple jukebox
 
 ## Using:
 
-* docker
-* socket.io
-* nodejs
-* express
-* multer
-* nedb
-* musicmetadata
-* wav
-* lame
-* jQuery
-* bootstrap
-* bootstrap-file-input
-* audio5js
-* spinjs
-* sox
-* handlebars
+* docker - portability
+* jQuery - dom manipulation, events
+* bootstrap - css
+* bootstrap-file-input - file input styling
+* audio5js - audio tag replacement
+* handlebars - templates
+* spinjs - spinner
+* socket.io - events
+* nodejs - server
+* express - routes
+* multer - uploads
+* nedb - file database
+* musicmetadata - audio metadata
+* wav - wav info
+* lame - audio encoder
+* sox - audio decoder
 
 ## Running:
 
